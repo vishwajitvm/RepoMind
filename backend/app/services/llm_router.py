@@ -177,40 +177,79 @@ class LLMRouter:
         adapters = []
         # 1. Gemini
         if settings.GEMINI_API_KEY:
-            adapters.append(GeminiAdapter(settings.GEMINI_API_KEY, "gemini-1.5-flash"))
+            adapters.append(GeminiAdapter(settings.GEMINI_API_KEY, settings.GEMINI_MODEL))
+            # Gemini fallback model if distinct
+            if settings.GEMINI_MODEL != "gemini-1.5-flash":
+                adapters.append(GeminiAdapter(settings.GEMINI_API_KEY, "gemini-1.5-flash"))
 
-        # 2. Groq
+        # 2. Groq (Ultra-fast inference)
         if settings.GROQ_API_KEY:
             adapters.append(OpenAICompatibleAdapter(
                 "groq",
                 "https://api.groq.com/openai/v1",
                 settings.GROQ_API_KEY,
-                "llama-3.3-70b-versatile"
+                settings.GROQ_MODEL
             ))
 
-        # 3. NVIDIA
+        # 3. OpenAI
+        if settings.OPENAI_API_KEY:
+            adapters.append(OpenAICompatibleAdapter(
+                "openai",
+                "https://api.openai.com/v1",
+                settings.OPENAI_API_KEY,
+                settings.OPENAI_MODEL
+            ))
+
+        # 4. Mistral
+        if settings.MISTRAL_API_KEY:
+            adapters.append(OpenAICompatibleAdapter(
+                "mistral",
+                "https://api.mistral.ai/v1",
+                settings.MISTRAL_API_KEY,
+                settings.MISTRAL_MODEL
+            ))
+
+        # 5. DeepSeek (via WaveSpeed or native)
+        if settings.DEEPSEEK_API_KEY:
+            adapters.append(OpenAICompatibleAdapter(
+                "deepseek",
+                settings.DEEPSEEK_BASE_URL,
+                settings.DEEPSEEK_API_KEY,
+                settings.DEEPSEEK_MODEL
+            ))
+
+        # 6. Kimi / Moonshot
+        if settings.KIMI_API_KEY:
+            adapters.append(OpenAICompatibleAdapter(
+                "kimi",
+                settings.KIMI_BASE_URL,
+                settings.KIMI_API_KEY,
+                settings.KIMI_MODEL
+            ))
+
+        # 7. NVIDIA NIM
         if settings.NVIDIA_API_KEY:
             adapters.append(OpenAICompatibleAdapter(
                 "nvidia",
                 "https://integrate.api.nvidia.com/v1",
                 settings.NVIDIA_API_KEY,
-                "meta/llama-3.3-70b-instruct"
+                settings.NVIDIA_MODEL
             ))
 
-        # 4. OpenRouter
+        # 8. OpenRouter
         if settings.OPENROUTER_API_KEY:
             adapters.append(OpenAICompatibleAdapter(
                 "openrouter",
                 "https://openrouter.ai/api/v1",
                 settings.OPENROUTER_API_KEY,
-                "meta-llama/llama-3.3-70b-instruct:free"
+                settings.OPENROUTER_MODEL
             ))
 
-        # 5. Ollama (Final local LLM fallback)
+        # 9. Ollama (Final local LLM fallback)
         if settings.OLLAMA_BASE_URL:
             adapters.append(OllamaAdapter(settings.OLLAMA_BASE_URL, settings.OLLAMA_MODEL))
 
-        # 6. Local Grounding Adapter (Deterministic safe fallback)
+        # 10. Local Grounding Adapter (Deterministic safe fallback)
         adapters.append(LocalGroundingAdapter())
 
         self.adapters = adapters

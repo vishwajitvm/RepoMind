@@ -65,21 +65,15 @@ services:
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-repomind}
-      DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-repomind}
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/repomind
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/repomind
       REDIS_URL: redis://redis:6379/0
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
       OLLAMA_BASE_URL: http://ollama:11434
-      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      TRACENEST_API_KEY: ${TRACENEST_API_KEY:-}
-      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
-      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-repomind}
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,20 +89,15 @@ services:
     container_name: repomind-worker
     restart: unless-stopped
     command: ["python", "-m", "app.services.worker"]
+    env_file:
+      - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-repomind}
-      DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-repomind}
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/repomind
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/repomind
       REDIS_URL: redis://redis:6379/0
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
       OLLAMA_BASE_URL: http://ollama:11434
-      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      TRACENEST_API_KEY: ${TRACENEST_API_KEY:-}
-      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -121,12 +110,27 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8000}
     container_name: repomind-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
+    env_file:
+      - ./frontend/.env
     depends_on:
       - backend
+
+  storybook:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.storybook
+    container_name: repomind-storybook
+    restart: unless-stopped
+    ports:
+      - "${STORYBOOK_PORT:-6006}:6006"
+    environment:
+      CI: "true"
 
 volumes:
   postgres_data:

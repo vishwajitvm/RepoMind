@@ -23,15 +23,15 @@ class QdrantRetriever:
 
     def _init_client(self) -> QdrantClient:
         try:
+            url = f"http://{settings.QDRANT_HOST}:{settings.QDRANT_PORT}"
             client = QdrantClient(
-                host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT,
+                url=url,
                 api_key=settings.QDRANT_API_KEY,
-                timeout=1.0,
+                timeout=5.0,
                 check_compatibility=False
             )
             client.get_collections()
-            logger.info(f"Connected to remote Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
+            logger.info(f"Connected to remote Qdrant at {url}")
             return client
         except Exception as e:
             logger.warning(f"Could not connect to remote Qdrant ({e}). Initializing in-memory Qdrant instance for safe operation.")

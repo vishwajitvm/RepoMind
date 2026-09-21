@@ -67,17 +67,20 @@ RepoMind is built with a **Docker-First** standard. Everything required runs ins
 git clone https://github.com/your-org/repomind.git
 cd repomind
 
-# 2. Configure environment (copy template)
-cp .env.example .env
+# 2. Configure environments
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 
-# 3. Start all services
-docker compose up --build
+# 3. Start all services (including Storybook)
+docker compose up -d --build
 ```
 
 Once started:
 - **Web Application**: [http://localhost:3000](http://localhost:3000)
+- **Storybook UI**: [http://localhost:6006](http://localhost:6006)
 - **API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Qdrant Dashboard**: [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
+- **Ollama**: [http://localhost:11434](http://localhost:11434)
 
 ---
 

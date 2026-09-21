@@ -36,3 +36,14 @@ export const LiveMCPSource: Story = {
     },
   },
 };
+
+export const WithoutSnippet: Story = {
+  args: {
+    citation: {
+      path: "backend/Dockerfile",
+      start_line: 1,
+      end_line: 24,
+      source_type: "indexed",
+    },
+  },
+};

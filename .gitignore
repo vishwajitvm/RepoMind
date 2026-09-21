@@ -20,7 +20,11 @@ storybook-static/
 
 # Environment and Secrets
 .env
+*.env
+**/.env
+**/*.env
 *.env.local
+**/*.env.local
 *.pem
 *.key
 *.cert

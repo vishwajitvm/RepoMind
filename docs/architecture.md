@@ -28,8 +28,8 @@ Rendered Diagram: [View on Mermaid.ink](https://mermaid.ink/img/pako:eNqNUstuwjA
 ```mermaid
 flowchart TD
     subgraph Client [Frontend Layer]
-        ReactUI[React 18 + TypeScript SPA]
-        Storybook[Storybook Component Library]
+        ReactUI[React 18 + TypeScript SPA :3000]
+        Storybook[Storybook UI Workbench :6006]
     end
 
     subgraph API_Worker [Backend & Ingestion Layer]
@@ -51,6 +51,10 @@ flowchart TD
         GitHubMCP[Official GitHub MCP Server]
         Gemini[Google Gemini API]
         Groq[Groq Llama-3.3 API]
+        OpenAI[OpenAI GPT-4o-mini API]
+        Mistral[Mistral AI API]
+        DeepSeek[DeepSeek / WaveSpeed API]
+        Kimi[Moonshot / Kimi API]
         Nvidia[NVIDIA NIM API]
         OpenRouter[OpenRouter API]
         Ollama[Ollama Local Daemon :11434]
@@ -74,9 +78,13 @@ flowchart TD
     Orchestrator -->|Generate Grounded Answer| LLMRouter
     LLMRouter -->|Priority 1| Gemini
     LLMRouter -->|Priority 2| Groq
-    LLMRouter -->|Priority 3| Nvidia
-    LLMRouter -->|Priority 4| OpenRouter
-    LLMRouter -->|Priority 5 (Local Fallback)| Ollama
+    LLMRouter -->|Priority 3| OpenAI
+    LLMRouter -->|Priority 4| Mistral
+    LLMRouter -->|Priority 5| DeepSeek
+    LLMRouter -->|Priority 6| Kimi
+    LLMRouter -->|Priority 7| Nvidia
+    LLMRouter -->|Priority 8| OpenRouter
+    LLMRouter -->|Priority 9 (Local Fallback)| Ollama
     Orchestrator -->|Record Trace| Postgres
     Orchestrator -.->|Best Effort| TraceNest
     Orchestrator -.->|Best Effort| LangSmith

@@ -23,6 +23,13 @@ export const Default: Story = {
   },
 };
 
+export const Small: Story = {
+  args: {
+    size: "sm",
+    color: "#10b981",
+  },
+};
+
 export const Large: Story = {
   args: {
     size: "lg",

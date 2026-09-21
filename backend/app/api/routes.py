@@ -117,8 +117,9 @@ async def get_indexing_status(repo_id: str, db: AsyncSession = Depends(get_db)):
         select(IndexingJob)
         .where(IndexingJob.repository_id == repo_id)
         .order_by(desc(IndexingJob.started_at))
+        .limit(1)
     )
-    latest_job = result.scalar_one_or_none()
+    latest_job = result.scalars().first()
     if not latest_job:
         # Check if repo exists
         repo_res = await db.execute(select(Repository).where(Repository.id == repo_id))

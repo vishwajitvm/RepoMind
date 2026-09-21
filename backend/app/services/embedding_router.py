@@ -94,6 +94,38 @@ class EmbeddingRouter:
                 adjusted.append(vec)
             return adjusted
 
+    async def _embed_openai(self, texts: List[str]) -> List[List[float]]:
+        """Call OpenAI embeddings API."""
+        if not settings.OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY not configured")
+
+        url = "https://api.openai.com/v1/embeddings"
+        headers = {
+            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "input": texts,
+            "model": settings.OPENAI_EMBEDDING_MODEL,
+            "dimensions": self.dimension
+        }
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(url, headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            items = data.get("data", [])
+            # Sort by index to maintain ordering
+            items.sort(key=lambda x: x.get("index", 0))
+            embeddings = []
+            for item in items:
+                vec = item.get("embedding", [])
+                if len(vec) > self.dimension:
+                    vec = vec[:self.dimension]
+                elif len(vec) < self.dimension:
+                    vec = vec + [0.0] * (self.dimension - len(vec))
+                embeddings.append(vec)
+            return embeddings
+
     async def embed_batch(self, texts: List[str]) -> Tuple[List[List[float]], str]:
         """
         Embed a list of text strings with bounded retries and automatic fallback.
@@ -106,12 +138,16 @@ class EmbeddingRouter:
         providers = []
         if settings.EMBEDDING_PROVIDER == "gemini" and settings.GEMINI_API_KEY:
             providers.append("gemini")
+        elif settings.EMBEDDING_PROVIDER == "openai" and settings.OPENAI_API_KEY:
+            providers.append("openai")
         elif settings.EMBEDDING_PROVIDER == "ollama":
             providers.append("ollama")
 
         # Include fallbacks
         if "gemini" not in providers and settings.GEMINI_API_KEY:
             providers.append("gemini")
+        if "openai" not in providers and settings.OPENAI_API_KEY:
+            providers.append("openai")
         if "ollama" not in providers and settings.OLLAMA_BASE_URL:
             providers.append("ollama")
         providers.append("local")
@@ -122,6 +158,8 @@ class EmbeddingRouter:
                 start_t = time.time()
                 if provider == "gemini":
                     vecs = await self._embed_gemini(texts)
+                elif provider == "openai":
+                    vecs = await self._embed_openai(texts)
                 elif provider == "ollama":
                     vecs = await self._embed_ollama(texts)
                 else:

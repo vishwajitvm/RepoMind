@@ -7,6 +7,7 @@ export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  size?: "sm" | "md" | "lg" | "xl";
   children: React.ReactNode;
   className?: string;
 }
@@ -15,9 +16,16 @@ export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
   title,
+  size = "md",
   children,
   className,
 }) => {
+  const sizeClasses = {
+    sm: "max-w-sm",
+    md: "max-w-lg",
+    lg: "max-w-2xl",
+    xl: "max-w-4xl",
+  };
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -51,7 +59,8 @@ export const Modal: React.FC<ModalProps> = ({
         aria-labelledby={title ? "modal-title" : undefined}
         className={twMerge(
           clsx(
-            "relative w-full max-w-lg bg-surface border border-border rounded-xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150",
+            "relative w-full bg-surface border border-border rounded-xl shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150",
+            sizeClasses[size],
             className
           )
         )}

@@ -8,9 +8,11 @@ const meta: Meta<typeof Input> = {
   argTypes: {
     label: { control: "text" },
     placeholder: { control: "text" },
+    value: { control: "text" },
     error: { control: "text" },
     helperText: { control: "text" },
     disabled: { control: "boolean" },
+    required: { control: "boolean" },
   },
 };
 
@@ -31,6 +33,15 @@ export const WithError: Story = {
     label: "Branch Name",
     value: "invalid branch name!",
     error: "Branch name contains invalid characters.",
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    label: "Repository ID",
+    value: "cbee282e-bad2-4603-b556-9256fddf1b2f",
+    disabled: true,
+    helperText: "Immutable UUID generated during registration.",
   },
 };
 

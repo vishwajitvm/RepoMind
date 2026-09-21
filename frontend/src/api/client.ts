@@ -1,6 +1,7 @@
 import { Repository, IndexStatus, ChatResponse, ExecutionTrace } from "../types";
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const RAW_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").trim();
+const API_BASE = RAW_BASE_URL ? `${RAW_BASE_URL.replace(/\/+$/, "")}/api` : "/api";
 
 export async function fetchRepositories(): Promise<Repository[]> {
   const res = await fetch(`${API_BASE}/repositories`);

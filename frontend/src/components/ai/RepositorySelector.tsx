@@ -9,6 +9,9 @@ export interface RepositorySelectorProps {
   selectedRepoId: string | null;
   onSelect: (repo: Repository) => void;
   onAddClick: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+  error?: string;
 }
 
 export const RepositorySelector: React.FC<RepositorySelectorProps> = ({
@@ -16,6 +19,9 @@ export const RepositorySelector: React.FC<RepositorySelectorProps> = ({
   selectedRepoId,
   onSelect,
   onAddClick,
+  loading = false,
+  disabled = false,
+  error,
 }) => {
   return (
     <div className="flex flex-col gap-3 w-full">
@@ -26,6 +32,7 @@ export const RepositorySelector: React.FC<RepositorySelectorProps> = ({
         <Button
           variant="outline"
           size="sm"
+          disabled={disabled || loading}
           icon={<Plus className="w-3.5 h-3.5" />}
           onClick={onAddClick}
         >
@@ -33,12 +40,23 @@ export const RepositorySelector: React.FC<RepositorySelectorProps> = ({
         </Button>
       </div>
 
-      <div className="flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1">
-        {repositories.length === 0 ? (
-          <div className="text-center p-4 border border-dashed border-border rounded-lg text-xs text-gray-400">
-            No repositories registered yet. Click &quot;Add Repo&quot; to begin.
-          </div>
-        ) : (
+      {error && (
+        <div className="p-2.5 rounded-lg border border-red-500/30 bg-red-950/20 text-xs text-red-300">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center p-6 border border-dashed border-border rounded-lg text-xs text-gray-400">
+          Loading repositories...
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1">
+          {repositories.length === 0 ? (
+            <div className="text-center p-4 border border-dashed border-border rounded-lg text-xs text-gray-400">
+              No repositories registered yet. Click &quot;Add Repo&quot; to begin.
+            </div>
+          ) : (
           repositories.map((repo) => {
             const isSelected = repo.id === selectedRepoId;
             return (
@@ -76,7 +94,8 @@ export const RepositorySelector: React.FC<RepositorySelectorProps> = ({
             );
           })
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -6,19 +6,26 @@ import { clsx } from "clsx";
 
 export interface ToolCallProps {
   toolName: string;
+  server?: string;
   status: "idle" | "running" | "success" | "error";
   latencyMs?: number;
   args?: Record<string, unknown>;
   output?: Record<string, unknown> | string;
+  error?: string;
+  expanded?: boolean;
 }
 
 export const ToolCall: React.FC<ToolCallProps> = ({
   toolName,
+  server,
   status,
   latencyMs,
   args,
   output,
+  error,
+  expanded = false,
 }) => {
+  const [isExpanded, setIsExpanded] = React.useState(expanded);
   const statusIcons = {
     idle: <Clock className="w-4 h-4 text-gray-400" />,
     running: <Spinner size="sm" color="#10b981" />,
@@ -35,9 +42,14 @@ export const ToolCall: React.FC<ToolCallProps> = ({
 
   return (
     <div className="flex flex-col border border-border bg-surface rounded-lg p-3 text-xs font-mono gap-2 transition-all">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex items-center gap-2">
           <Terminal className="w-4 h-4 text-emerald-400" />
+          {server && (
+            <span className="text-[10px] text-sky-400 bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-800/40">
+              {server}
+            </span>
+          )}
           <span className="font-semibold text-gray-200">{toolName}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -49,7 +61,7 @@ export const ToolCall: React.FC<ToolCallProps> = ({
         </div>
       </div>
 
-      {args && Object.keys(args).length > 0 && (
+      {(isExpanded || status === "running") && args && Object.keys(args).length > 0 && (
         <div className="bg-surface-raised rounded p-2 text-gray-300 overflow-x-auto">
           <div className="text-[10px] text-gray-500 font-semibold mb-1 uppercase tracking-wide">
             Arguments
@@ -60,7 +72,16 @@ export const ToolCall: React.FC<ToolCallProps> = ({
         </div>
       )}
 
-      {output && (
+      {error && (
+        <div className="rounded p-2 bg-red-950/30 text-red-300 border border-red-900/40 overflow-x-auto">
+          <div className="text-[10px] text-red-400 font-semibold mb-1 uppercase tracking-wide">
+            Error
+          </div>
+          <pre className="text-[11px] leading-relaxed">{error}</pre>
+        </div>
+      )}
+
+      {(isExpanded || status !== "idle") && output && (
         <div
           className={clsx(
             "rounded p-2 overflow-x-auto",

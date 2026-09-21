@@ -5,17 +5,28 @@ import { twMerge } from "tailwind-merge";
 
 export interface ToastProps {
   type?: "info" | "success" | "warning" | "error";
+  title?: string;
   message: string;
+  duration?: number;
   onClose?: () => void;
   className?: string;
 }
 
 export const Toast: React.FC<ToastProps> = ({
   type = "info",
+  title,
   message,
+  duration,
   onClose,
   className,
 }) => {
+  React.useEffect(() => {
+    if (duration && onClose) {
+      const timer = setTimeout(onClose, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [duration, onClose]);
+
   const icons = {
     info: <Info className="w-4 h-4 text-sky-400" />,
     success: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
@@ -41,14 +52,17 @@ export const Toast: React.FC<ToastProps> = ({
         )
       )}
     >
-      <div className="flex items-center gap-2.5">
-        <span className="shrink-0">{icons[type]}</span>
-        <span className="font-medium">{message}</span>
+      <div className="flex items-start gap-2.5">
+        <span className="shrink-0 mt-0.5">{icons[type]}</span>
+        <div className="flex flex-col">
+          {title && <span className="font-semibold text-xs leading-none mb-1">{title}</span>}
+          <span className="font-medium text-xs">{message}</span>
+        </div>
       </div>
       {onClose && (
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-200 p-0.5 rounded transition-colors"
+          className="text-gray-400 hover:text-gray-200 p-0.5 rounded transition-colors self-start"
           aria-label="Dismiss toast"
         >
           <X className="w-4 h-4" />

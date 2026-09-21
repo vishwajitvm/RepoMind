@@ -4,6 +4,11 @@ import { ChatInput } from "../ai/ChatInput";
 const meta: Meta<typeof ChatInput> = {
   title: "AI/ChatInput",
   component: ChatInput,
+  argTypes: {
+    placeholder: { control: "text" },
+    disabled: { control: "boolean" },
+    loading: { control: "boolean" },
+  },
 };
 
 export default meta;
@@ -22,5 +27,13 @@ export const Loading: Story = {
     placeholder: "LangGraph synthesizing answer...",
     disabled: true,
     loading: true,
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    placeholder: "Please select a repository on the left first",
+    disabled: true,
+    loading: false,
   },
 };

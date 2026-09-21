@@ -63,3 +63,26 @@ export const OutlineWithRightIcon: Story = {
     iconPosition: "right",
   },
 };
+
+export const Disabled: Story = {
+  args: {
+    children: "Unavailable Action",
+    variant: "primary",
+    disabled: true,
+  },
+};
+
+export const Ghost: Story = {
+  args: {
+    children: "Dismiss Details",
+    variant: "ghost",
+  },
+};
+
+export const FullWidth: Story = {
+  args: {
+    children: "Trigger Repository Re-indexing",
+    variant: "primary",
+    fullWidth: true,
+  },
+};

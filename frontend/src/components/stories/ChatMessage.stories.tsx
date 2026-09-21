@@ -68,3 +68,15 @@ export const AssistantAnswerWithCitations: Story = {
     },
   },
 };
+
+export const AssistantSimple: Story = {
+  args: {
+    message: {
+      id: "msg-3",
+      role: "assistant",
+      content:
+        "RepoMind is an AI Codebase Intelligence POC. To begin, select a repository from the sidebar or click 'Add Repo' to register a new repository URL for indexing.",
+      created_at: new Date().toISOString(),
+    },
+  },
+};
