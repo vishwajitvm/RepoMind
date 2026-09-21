@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# Node
+node_modules/
+dist/
+storybook-static/
+
+# Environment and Secrets
+.env
+*.env.local
+*.pem
+*.key
+*.cert
+credentials.json
+
+# IDE
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Data
+data/
+*.sqlite3
+*.db
+qdrant_storage/
+ollama_data/
