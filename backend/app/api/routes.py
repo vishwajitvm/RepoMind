@@ -20,6 +20,7 @@ from app.schemas.api_schemas import (
 )
 from app.services.orchestrator import orchestrator_graph
 from app.services.worker import dispatch_indexing_job
+from app.services.tracer import tracer
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,17 @@ async def create_repository(
     db.add(repo)
     await db.commit()
     await db.refresh(repo)
+
+    tracer.log_event(
+        event_name="repository_registered",
+        message=f"Repository registered successfully: {repo.name}",
+        logger_name="repository",
+        level="INFO",
+        repository_id=repo.id,
+        name=repo.name,
+        url=repo.url
+    )
+
     return repo
 
 
@@ -96,6 +108,15 @@ async def trigger_indexing(
 
     # Enqueue job to background worker
     await dispatch_indexing_job(repository_id=repo.id, job_id=job.id)
+
+    tracer.log_event(
+        event_name="indexing_queued",
+        message=f"Repository indexing job queued for {repo.name}",
+        logger_name="indexer",
+        level="INFO",
+        repository_id=repo.id,
+        job_id=job.id
+    )
 
     return IndexStatusResponse(
         repository_id=repo.id,
@@ -187,6 +208,16 @@ async def chat_codebase(
     db.add(user_msg)
     await db.commit()
 
+    tracer.log_event(
+        event_name="chat_started",
+        message=f"Chat query received for repository: {repo.name}",
+        logger_name="api",
+        level="INFO",
+        query=payload.message,
+        repository_id=repo.id,
+        conversation_id=conversation.id
+    )
+
     # Invoke LangGraph orchestrator
     initial_state = {
         "query": payload.message,
@@ -244,6 +275,21 @@ async def chat_codebase(
     await db.commit()
     await db.refresh(asst_msg)
 
+    tracer.log_event(
+        event_name="chat_completed",
+        message=f"Chat response completed — {len(asst_msg.sources)} sources cited ({trace.provider_used})",
+        logger_name="chat",
+        level="INFO",
+        trace_id=trace.id,
+        message_id=asst_msg.id,
+        execution_id=trace.id,
+        conversation_id=conversation.id,
+        provider_used=trace.provider_used,
+        model_used=trace.model_used,
+        latency_ms=trace.latency_ms,
+        sources_count=len(asst_msg.sources)
+    )
+
     # Format trace response
     trace_resp = ExecutionTraceResponse(
         id=trace.id,
@@ -277,6 +323,16 @@ async def get_execution_trace(execution_id: str, db: AsyncSession = Depends(get_
     trace = result.scalar_one_or_none()
     if not trace:
         raise HTTPException(status_code=404, detail="Execution trace not found")
+
+    tracer.log_event(
+        event_name="trace_completed",
+        message=f"Execution trace retrieved for ID {execution_id[:8]}...",
+        logger_name="observability",
+        level="DEBUG",
+        execution_id=execution_id,
+        provider_used=trace.provider_used,
+        latency_ms=trace.latency_ms
+    )
 
     return ExecutionTraceResponse(
         id=trace.id,

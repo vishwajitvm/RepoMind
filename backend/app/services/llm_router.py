@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Any, Tuple
 from abc import ABC, abstractmethod
 import httpx
 from app.config import settings
+from app.services.tracer import tracer
 
 logger = logging.getLogger(__name__)
 
@@ -268,6 +269,14 @@ class LLMRouter:
         fallback_chain: List[Dict[str, Any]] = []
         fallback_occurred = False
 
+        tracer.log_event(
+            event_name="llm_generation_started",
+            message=f"Starting multi-provider LLM answer synthesis across {len(self.adapters)} adapters",
+            logger_name="llm",
+            level="DEBUG",
+            candidate_count=len(self.adapters)
+        )
+
         for i, adapter in enumerate(self.adapters):
             start_t = time.time()
             try:
@@ -287,6 +296,18 @@ class LLMRouter:
                 }
                 fallback_chain.append(event)
                 logger.info(f"LLMRouter: successfully generated response using {adapter.provider_name}:{adapter.model_name} in {latency}ms")
+
+                tracer.log_event(
+                    event_name="llm_generation_completed",
+                    message=f"{adapter.provider_name}:{adapter.model_name} response generated successfully in {latency}ms",
+                    logger_name="llm",
+                    level="INFO",
+                    provider=adapter.provider_name,
+                    model=adapter.model_name,
+                    latency_ms=latency,
+                    fallback_occurred=fallback_occurred
+                )
+
                 return text, adapter.provider_name, adapter.model_name, fallback_occurred, fallback_chain
             except Exception as e:
                 latency = int((time.time() - start_t) * 1000)
@@ -299,6 +320,41 @@ class LLMRouter:
                     "error": str(e),
                     "latency_ms": latency
                 })
+
+                next_adapter = self.adapters[i + 1].provider_name if i + 1 < len(self.adapters) else "none"
+                err_str = str(e)
+                short_err = (
+                    "rate limited" if "429" in err_str
+                    else "unauthorized" if "401" in err_str
+                    else "not found" if "404" in err_str
+                    else "timeout" if "timeout" in err_str.lower()
+                    else "failed"
+                )
+
+                if next_adapter == "ollama":
+                    tracer.log_event(
+                        event_name="llm_fallback_started",
+                        message=f"All cloud LLM providers failed ({adapter.provider_name} {short_err}) — switching to local Ollama",
+                        logger_name="llm",
+                        level="WARNING",
+                        failed_provider=adapter.provider_name,
+                        next_provider="ollama",
+                        latency_ms=latency,
+                        error=err_str[:150]
+                    )
+                else:
+                    tracer.log_event(
+                        event_name="llm_provider_failed",
+                        message=f"{adapter.provider_name} failed ({short_err}) — switching to {next_adapter}",
+                        logger_name="llm",
+                        level="WARNING",
+                        provider=adapter.provider_name,
+                        model=adapter.model_name,
+                        next_provider=next_adapter,
+                        latency_ms=latency,
+                        error=err_str[:150]
+                    )
+
                 continue
 
         # Should never reach here due to LocalGroundingAdapter

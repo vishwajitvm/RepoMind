@@ -13,22 +13,19 @@ Standard AI models only know what they were trained on in the past. They have no
 
 ## 2. RAG Retrieval & Synthesis Pipeline Diagram
 
-![RepoMind RAG Retrieval and Answer Synthesis Pipeline](https://mermaid.ink/svg/Zmxvd2NoYXJ0IFRECiAgICBVc2VyUXVlcnlbVXNlciBRdWVzdGlvbjogV2hlcmUgaXMgYXV0aCB2YWxpZGF0ZWQ/XSAtLT4gRW1iZWRRdWVyeVtFbWJlZGRpbmdSb3V0ZXI6IENvbnZlcnQgcXVlcnkgdG8gMzg0ZCB2ZWN0b3JdCiAgICBFbWJlZFF1ZXJ5IC0tPiBRZHJhbnRTZWFyY2hbUWRyYW50OiBDb3NpbmUgc2ltaWxhcml0eSBzZWFyY2ggd2l0aCByZXBvc2l0b3J5X2lkIGZpbHRlcl0KICAgIAogICAgUWRyYW50U2VhcmNoIC0tPiBUb3BDaHVua3NbVG9wLUsgQ29kZSBDaHVua3M6IGZpbGUgcGF0aCwgc3ltYm9sLCBsaW5lIGJvdW5kc10KICAgIFRvcENodW5rcyAtLT4gTUNQQ2hlY2t7SXMgTGl2ZSBDb2RlIFZlcmlmaWNhdGlvbiBOZWVkZWQ/fQogICAgCiAgICBNQ1BDaGVjayAtLT58WWVzfCBGZXRjaE1DUFtGZXRjaCBjdXJyZW50IGZpbGUgY29udGVudHMgdmlhIEdpdEh1YiBNQ1BdCiAgICBNQ1BDaGVjayAtLT58Tm98IENvbWJpbmVDb250ZXh0W0Fzc2VtYmxlIFN5c3RlbSBQcm9tcHQgKyBHcm91bmRlZCBDb2RlIENvbnRleHRdCiAgICBGZXRjaE1DUCAtLT4gQ29tYmluZUNvbnRleHQKICAgIAogICAgQ29tYmluZUNvbnRleHQgLS0+IExMTVJvdXRpbmdbTExNUm91dGVyIE11bHRpLVByb3ZpZGVyIFN5bnRoZXNpc10KICAgIExMTVJvdXRpbmcgLS0+IEFuc3dlclN5bnRoZXNpc1tBbnN3ZXIgR2VuZXJhdGVkIHdpdGggR3JvdW5kZWQgTGluZSBDaXRhdGlvbnNd)
+![RepoMind RAG Retrieval and Answer Synthesis Pipeline](https://mermaid.ink/svg/Zmxvd2NoYXJ0IFRECiAgICBVc2VyUXVlcnlbVXNlciBRdWVzdGlvbl0gLS0+IEVtYmVkUXVlcnlbRW1iZWRkaW5nUm91dGVyOiBDb252ZXJ0IHF1ZXJ5IHRvIDM4NGQgdmVjdG9yXQogICAgRW1iZWRRdWVyeSAtLT4gUWRyYW50U2VhcmNoW1FkcmFudDogQ29zaW5lIHNpbWlsYXJpdHkgc2VhcmNoXQogICAgUWRyYW50U2VhcmNoIC0tPiBUb3BDaHVua3NbVG9wLUsgQ29kZSBDaHVua3Mgd2l0aCBsaW5lIGJvdW5kc10KICAgIFRvcENodW5rcyAtLT4gTUNQQ2hlY2t7TGl2ZSBHaXRIdWIgQ2hlY2sgTmVlZGVkfQogICAgTUNQQ2hlY2sgLS0+fFllc3wgRmV0Y2hNQ1BbRmV0Y2ggY3VycmVudCBmaWxlIGNvbnRlbnRzIHZpYSBHaXRIdWIgTUNQXQogICAgTUNQQ2hlY2sgLS0+fE5vfCBDb21iaW5lQ29udGV4dFtBc3NlbWJsZSBHcm91bmRlZCBDb2RlIENvbnRleHRdCiAgICBGZXRjaE1DUCAtLT4gQ29tYmluZUNvbnRleHQKICAgIENvbWJpbmVDb250ZXh0IC0tPiBMTE1Sb3V0aW5nW0xMTVJvdXRlciBNdWx0aS1Qcm92aWRlciBTeW50aGVzaXNdCiAgICBMTE1Sb3V0aW5nIC0tPiBBbnN3ZXJTeW50aGVzaXNbQW5zd2VyIEdlbmVyYXRlZCB3aXRoIEdyb3VuZGVkIENpdGF0aW9uc10=)
 
 ```mermaid
 flowchart TD
-    UserQuery[User Question: Where is auth validated?] --> EmbedQuery[EmbeddingRouter: Convert query to 384d vector]
-    EmbedQuery --> QdrantSearch[Qdrant: Cosine similarity search with repository_id filter]
-    
-    QdrantSearch --> TopChunks[Top-K Code Chunks: file path, symbol, line bounds]
-    TopChunks --> MCPCheck{Is Live Code Verification Needed?}
-    
+    UserQuery[User Question] --> EmbedQuery[EmbeddingRouter: Convert query to 384d vector]
+    EmbedQuery --> QdrantSearch[Qdrant: Cosine similarity search]
+    QdrantSearch --> TopChunks[Top-K Code Chunks with line bounds]
+    TopChunks --> MCPCheck{Live GitHub Check Needed}
     MCPCheck -->|Yes| FetchMCP[Fetch current file contents via GitHub MCP]
-    MCPCheck -->|No| CombineContext[Assemble System Prompt + Grounded Code Context]
+    MCPCheck -->|No| CombineContext[Assemble Grounded Code Context]
     FetchMCP --> CombineContext
-    
     CombineContext --> LLMRouting[LLMRouter Multi-Provider Synthesis]
-    LLMRouting --> AnswerSynthesis[Answer Generated with Grounded Line Citations]
+    LLMRouting --> AnswerSynthesis[Answer Generated with Grounded Citations]
 ```
 
 ---

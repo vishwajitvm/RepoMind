@@ -4,6 +4,7 @@ import time
 from typing import List, Optional, Tuple
 import httpx
 from app.config import settings
+from app.services.tracer import tracer
 
 logger = logging.getLogger(__name__)
 
@@ -167,9 +168,26 @@ class EmbeddingRouter:
 
                 latency_ms = int((time.time() - start_t) * 1000)
                 logger.info(f"EmbeddingRouter: generated {len(texts)} embeddings via {provider} in {latency_ms}ms")
+                tracer.log_event(
+                    event_name="embedding_batch_completed",
+                    message=f"Generated {len(texts)} embeddings via '{provider}' in {latency_ms}ms",
+                    logger_name="embedding",
+                    level="DEBUG",
+                    provider=provider,
+                    count=len(texts),
+                    latency_ms=latency_ms
+                )
                 return vecs, provider
             except Exception as e:
                 logger.warning(f"EmbeddingRouter: provider {provider} failed: {e}. Attempting fallback...")
+                tracer.log_event(
+                    event_name="embedding_provider_failed",
+                    message=f"Embedding provider '{provider}' failed ({e}) — attempting fallback",
+                    logger_name="embedding",
+                    level="WARNING",
+                    failed_provider=provider,
+                    error=str(e)
+                )
                 last_error = e
                 continue
 

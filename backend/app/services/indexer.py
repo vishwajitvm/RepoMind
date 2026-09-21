@@ -61,6 +61,16 @@ class RepositoryIndexer:
             repo.status = "indexing"
             await s.commit()
 
+        tracer.log_event(
+            event_name="indexing_started",
+            message=f"Repository indexing started for {repo.name} (branch: {repo.default_branch})",
+            logger_name="indexer",
+            level="INFO",
+            repository_id=repository_id,
+            job_id=job_id,
+            url=repo.url
+        )
+
         temp_dir = tempfile.mkdtemp(prefix="repomind_idx_")
         target_dir = temp_dir
         is_temp = True
@@ -87,6 +97,15 @@ class RepositoryIndexer:
                     if not is_ignored_file(rel_path):
                         discovered_files.append(rel_path)
 
+            tracer.log_event(
+                event_name="repository_discovered",
+                message=f"Discovered {len(discovered_files)} candidate source files in {repo.name}",
+                logger_name="indexer",
+                level="INFO",
+                repository_id=repository_id,
+                total_files=len(discovered_files)
+            )
+
             async with _get_session_scope(session) as s:
                 job_res = await s.execute(select(IndexingJob).where(IndexingJob.id == job_id))
                 curr_job = job_res.scalar_one()
@@ -103,6 +122,15 @@ class RepositoryIndexer:
                     file_size = os.path.getsize(full_path)
                     if file_size > 1024 * 1024:
                         logger.info(f"Skipping large file ({file_size} bytes): {rel_path}")
+                        tracer.log_event(
+                            event_name="indexing_file_skipped",
+                            message=f"Skipped large file ({file_size} bytes): {rel_path}",
+                            logger_name="indexer",
+                            level="WARNING",
+                            repository_id=repository_id,
+                            path=rel_path,
+                            size_bytes=file_size
+                        )
                         continue
 
                     with open(full_path, "r", encoding="utf-8", errors="replace") as f:
@@ -124,6 +152,17 @@ class RepositoryIndexer:
                         vectors=vectors
                     )
 
+                    tracer.log_event(
+                        event_name="code_parse_completed",
+                        message=f"Parsed and indexed {len(chunks)} chunks from {rel_path}",
+                        logger_name="parser",
+                        level="INFO",
+                        repository_id=repository_id,
+                        path=rel_path,
+                        chunk_count=len(chunks),
+                        provider=provider
+                    )
+
                     indexed_count += 1
                     total_chunks += len(chunks)
 
@@ -141,6 +180,15 @@ class RepositoryIndexer:
 
                 except Exception as file_err:
                     logger.warning(f"Failed indexing file {rel_path}: {file_err}")
+                    tracer.log_event(
+                        event_name="indexing_file_failed",
+                        message=f"Failed parsing {rel_path} — {file_err}",
+                        logger_name="parser",
+                        level="WARNING",
+                        repository_id=repository_id,
+                        path=rel_path,
+                        error=str(file_err)
+                    )
                     failed_count += 1
                     async with _get_session_scope(session) as s:
                         file_record = IndexedFile(
@@ -171,13 +219,18 @@ class RepositoryIndexer:
 
                 await s.commit()
 
-            tracer.log_event("indexing_job_completed", {
-                "repository_id": repository_id,
-                "total_files": len(discovered_files),
-                "indexed_files": indexed_count,
-                "failed_files": failed_count,
-                "total_chunks": total_chunks
-            })
+            tracer.log_event(
+                event_name="indexing_completed",
+                message=f"Repository indexing completed — {indexed_count} files, {total_chunks} chunks",
+                logger_name="indexer",
+                level="INFO",
+                repository_id=repository_id,
+                job_id=job_id,
+                total_files=len(discovered_files),
+                indexed_files=indexed_count,
+                failed_files=failed_count,
+                total_chunks=total_chunks
+            )
 
             return {
                 "status": "completed",
@@ -188,6 +241,15 @@ class RepositoryIndexer:
 
         except Exception as e:
             logger.error(f"Fatal error during repository indexing: {e}")
+            tracer.log_event(
+                event_name="indexing_failed",
+                message=f"Repository indexing failed: {e}",
+                logger_name="indexer",
+                level="ERROR",
+                repository_id=repository_id,
+                job_id=job_id,
+                error=str(e)
+            )
             async with _get_session_scope(session) as s:
                 job_res = await s.execute(select(IndexingJob).where(IndexingJob.id == job_id))
                 curr_job = job_res.scalar_one_or_none()

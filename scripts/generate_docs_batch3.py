@@ -94,10 +94,10 @@ emb_diag = """flowchart TD
         EmbRouter --> OpenAIEmb[4. OpenAI: text-embedding-3-small]
     end
 
-    LocalModel -->|Dense Vector [384 dims]| Normalize[L2 Normalization]
-    GeminiEmb -->|Dense Vector [384 dims]| Normalize
-    OllamaEmb -->|Dense Vector [384 dims]| Normalize
-    OpenAIEmb -->|Dense Vector [384 dims]| Normalize
+    LocalModel -->|Dense 384d Vector| Normalize[L2 Normalization]
+    GeminiEmb -->|Dense 384d Vector| Normalize
+    OllamaEmb -->|Dense 384d Vector| Normalize
+    OpenAIEmb -->|Dense 384d Vector| Normalize
 
     Normalize --> QdrantIndex[(Qdrant Vector Database)]"""
 
@@ -365,18 +365,15 @@ write_doc("docs/feature/llm-routing.md", llm_content)
 # 19. docs/feature/rag-chat.md
 # -----------------------------------------------------------------------------
 rag_diag = """flowchart TD
-    UserQuery[User Question: Where is auth validated?] --> EmbedQuery[EmbeddingRouter: Convert query to 384d vector]
-    EmbedQuery --> QdrantSearch[Qdrant: Cosine similarity search with repository_id filter]
-    
-    QdrantSearch --> TopChunks[Top-K Code Chunks: file path, symbol, line bounds]
-    TopChunks --> MCPCheck{Is Live Code Verification Needed?}
-    
+    UserQuery[User Question] --> EmbedQuery[EmbeddingRouter: Convert query to 384d vector]
+    EmbedQuery --> QdrantSearch[Qdrant: Cosine similarity search]
+    QdrantSearch --> TopChunks[Top-K Code Chunks with line bounds]
+    TopChunks --> MCPCheck{Live GitHub Check Needed}
     MCPCheck -->|Yes| FetchMCP[Fetch current file contents via GitHub MCP]
-    MCPCheck -->|No| CombineContext[Assemble System Prompt + Grounded Code Context]
+    MCPCheck -->|No| CombineContext[Assemble Grounded Code Context]
     FetchMCP --> CombineContext
-    
     CombineContext --> LLMRouting[LLMRouter Multi-Provider Synthesis]
-    LLMRouting --> AnswerSynthesis[Answer Generated with Grounded Line Citations]"""
+    LLMRouting --> AnswerSynthesis[Answer Generated with Grounded Citations]"""
 
 rag_content = f"""# Feature: Retrieval-Augmented Generation (RAG) Chat
 

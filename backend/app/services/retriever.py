@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 from app.config import settings
+from app.services.tracer import tracer
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,14 @@ class QdrantRetriever:
             )
 
         logger.info(f"Upserted {len(points)} chunks into Qdrant for repository {repository_id}")
+        tracer.log_event(
+            event_name="qdrant_upsert_completed",
+            message=f"Stored {len(points)} code chunks in Qdrant",
+            logger_name="qdrant",
+            level="INFO",
+            points_count=len(points),
+            repository_id=repository_id
+        )
         return len(points)
 
     def search(
@@ -153,6 +162,15 @@ class QdrantRetriever:
             item = dict(hit.payload or {})
             item["score"] = hit.score
             matches.append(item)
+
+        tracer.log_event(
+            event_name="qdrant_search_completed",
+            message=f"Vector search completed — found {len(matches)} matching chunks in Qdrant",
+            logger_name="qdrant",
+            level="DEBUG",
+            matches_count=len(matches),
+            repository_id=repository_id
+        )
 
         return matches
 

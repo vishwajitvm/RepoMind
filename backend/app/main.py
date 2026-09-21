@@ -52,12 +52,12 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# TraceNest request telemetry middleware
+# RepoMind descriptive HTTP request telemetry middleware
 try:
-    from tracenest.fastapi.middleware import TraceNestMiddleware
-    app.add_middleware(TraceNestMiddleware)
+    from app.services.telemetry_middleware import RepoMindHTTPTelemetryMiddleware
+    app.add_middleware(RepoMindHTTPTelemetryMiddleware)
 except Exception as e:
-    logger.warning(f"Could not load TraceNestMiddleware: {e}")
+    logger.warning(f"Could not load RepoMindHTTPTelemetryMiddleware: {e}")
 
 # Include API endpoints
 app.include_router(api_router, prefix="/api")

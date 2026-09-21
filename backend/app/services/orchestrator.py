@@ -34,6 +34,15 @@ async def retrieve_step(state: GraphState) -> Dict[str, Any]:
     query = state["query"]
     repo_id = state.get("repository_id")
 
+    tracer.log_event(
+        event_name="retrieval_started",
+        message=f"Searching indexed code in Qdrant for: '{query[:45]}...'",
+        logger_name="retrieval",
+        level="INFO",
+        query=query,
+        repository_id=repo_id
+    )
+
     query_vec, emb_provider = await embedding_router.embed_query(query)
     chunks = qdrant_retriever.search(
         query_vector=query_vec,
@@ -53,7 +62,28 @@ async def retrieve_step(state: GraphState) -> Dict[str, Any]:
             "files": list({c.get("path") for c in chunks if c.get("path")})
         }
     }
-    tracer.log_event("retrieval_complete", step["details"])
+
+    if chunks:
+        tracer.log_event(
+            event_name="retrieval_completed",
+            message=f"Retrieved {len(chunks)} relevant code chunks from Qdrant",
+            logger_name="retrieval",
+            level="INFO",
+            repository_id=repo_id,
+            chunks_found=len(chunks),
+            files=step["details"]["files"],
+            latency_ms=latency
+        )
+    else:
+        tracer.log_event(
+            event_name="retrieval_no_results",
+            message="No indexed code chunks found matching query in Qdrant",
+            logger_name="retrieval",
+            level="WARNING",
+            repository_id=repo_id,
+            latency_ms=latency
+        )
+
     return {
         "retrieved_chunks": chunks,
         "steps": state.get("steps", []) + [step]
@@ -66,23 +96,37 @@ async def mcp_decision_step(state: GraphState) -> Dict[str, Any]:
     query = state["query"].lower()
     retrieved = state.get("retrieved_chunks", [])
 
-    # Triggers for live MCP inspection:
-    # 1. User asks explicitly for latest/current/live status
-    # 2. No indexed chunks were found
-    # 3. User specifically asks about pull requests, commits, or fresh updates
     live_keywords = ["latest", "recent", "live", "current", "head", "fresh", "commit", "prs", "issues"]
     needs_mcp = any(k in query for k in live_keywords) or len(retrieved) == 0
 
     latency = int((time.time() - start_t) * 1000)
+    reason = "Live query keyword or empty vector match" if needs_mcp else "Indexed Qdrant context sufficient"
     step = {
         "name": "mcp_decision",
         "status": "success",
         "latency_ms": latency,
         "details": {
             "needs_mcp": needs_mcp,
-            "reason": "Live query keyword or empty vector match" if needs_mcp else "Indexed Qdrant context sufficient"
+            "reason": reason
         }
     }
+
+    if needs_mcp:
+        tracer.log_event(
+            event_name="mcp_requested",
+            message=f"Live GitHub source required — {reason}",
+            logger_name="mcp",
+            level="INFO",
+            reason=reason
+        )
+    else:
+        tracer.log_event(
+            event_name="mcp_not_required",
+            message="Live GitHub MCP inspection skipped — indexed context sufficient",
+            logger_name="mcp",
+            level="DEBUG"
+        )
+
     return {
         "needs_mcp": needs_mcp,
         "steps": state.get("steps", []) + [step]
@@ -100,15 +144,21 @@ async def mcp_fetch_step(state: GraphState) -> Dict[str, Any]:
     query = state["query"]
     retrieved = state.get("retrieved_chunks", [])
 
+    tracer.log_event(
+        event_name="mcp_tool_started",
+        message=f"Invoking GitHub MCP tools for repository '{repo_name}'",
+        logger_name="mcp",
+        level="INFO",
+        repo_name=repo_name
+    )
+
     mcp_results = []
-    # If we already have a top file path from retrieval, fetch current live content for accuracy
     if retrieved:
         top_file = retrieved[0].get("path")
         if top_file and repo_name:
             res = await github_mcp_client.get_file_contents(repo_name, top_file)
             mcp_results.append(res)
     else:
-        # Otherwise execute GitHub code search
         if repo_name:
             res = await github_mcp_client.search_code(repo_name, query)
             mcp_results.append(res)
@@ -127,7 +177,16 @@ async def mcp_fetch_step(state: GraphState) -> Dict[str, Any]:
             ]
         }
     }
-    tracer.log_event("mcp_execution_complete", step["details"])
+
+    tracer.log_event(
+        event_name="mcp_tool_completed",
+        message=f"GitHub MCP execution completed — {len(mcp_results)} tool responses",
+        logger_name="mcp",
+        level="INFO" if any_success else "WARNING",
+        tools_called=step["details"]["tools_called"],
+        latency_ms=latency
+    )
+
     return {
         "mcp_results": mcp_results,
         "steps": state.get("steps", []) + [step]
@@ -141,7 +200,6 @@ async def llm_generate_step(state: GraphState) -> Dict[str, Any]:
     chunks = state.get("retrieved_chunks", [])
     mcp_results = state.get("mcp_results", [])
 
-    # Format context with strict file, line, and symbol references
     context_blocks = []
     sources = []
 
@@ -167,7 +225,6 @@ async def llm_generate_step(state: GraphState) -> Dict[str, Any]:
             "snippet": content[:200] + "..." if len(content) > 200 else content
         })
 
-    # Add live MCP context if retrieved
     for mr in mcp_results:
         if mr.get("status") == "success" and "content" in mr:
             path = mr.get("path", "")
@@ -217,7 +274,18 @@ async def llm_generate_step(state: GraphState) -> Dict[str, Any]:
             "fallback_chain": fallback_chain
         }
     }
-    tracer.log_event("generation_complete", step["details"])
+
+    tracer.log_event(
+        event_name="graph_completed",
+        message=f"LangGraph execution finished — {len(sources)} grounded sources assembled ({provider_used})",
+        logger_name="langgraph",
+        level="INFO",
+        provider_used=provider_used,
+        model_used=model_used,
+        fallback_occurred=fallback_occurred,
+        sources_count=len(sources),
+        latency_ms=latency
+    )
 
     return {
         "answer": answer,

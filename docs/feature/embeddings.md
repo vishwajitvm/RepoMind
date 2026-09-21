@@ -15,7 +15,7 @@ RepoMind includes an **EmbeddingRouter** that:
 
 ## 2. Embedding Generation Flow Diagram
 
-![Multi-Provider Embedding Router Pipeline](https://mermaid.ink/svg/Zmxvd2NoYXJ0IFRECiAgICBJbnB1dENodW5rW0NvZGUgQ2h1bmsgVGV4dF0gLS0+IEVtYlJvdXRlcltFbWJlZGRpbmdSb3V0ZXIgRW5naW5lXQogICAgCiAgICBzdWJncmFwaCBQcm92aWRlcnMgW0VtYmVkZGluZyBQcm92aWRlcnMgUHJpb3JpdHldCiAgICAgICAgRW1iUm91dGVyIC0tPiBMb2NhbE1vZGVsWzEuIExvY2FsIFNlbnRlbmNlLVRyYW5zZm9ybWVyczogYWxsLU1pbmlMTS1MNi12Ml0KICAgICAgICBFbWJSb3V0ZXIgLS0+IEdlbWluaUVtYlsyLiBHb29nbGUgR2VtaW5pOiB0ZXh0LWVtYmVkZGluZy0wMDRdCiAgICAgICAgRW1iUm91dGVyIC0tPiBPbGxhbWFFbWJbMy4gTG9jYWwgT2xsYW1hOiBub21pYy1lbWJlZC10ZXh0XQogICAgICAgIEVtYlJvdXRlciAtLT4gT3BlbkFJRW1iWzQuIE9wZW5BSTogdGV4dC1lbWJlZGRpbmctMy1zbWFsbF0KICAgIGVuZAoKICAgIExvY2FsTW9kZWwgLS0+fERlbnNlIFZlY3RvciBbMzg0IGRpbXNdfCBOb3JtYWxpemVbTDIgTm9ybWFsaXphdGlvbl0KICAgIEdlbWluaUVtYiAtLT58RGVuc2UgVmVjdG9yIFszODQgZGltc118IE5vcm1hbGl6ZQogICAgT2xsYW1hRW1iIC0tPnxEZW5zZSBWZWN0b3IgWzM4NCBkaW1zXXwgTm9ybWFsaXplCiAgICBPcGVuQUlFbWIgLS0+fERlbnNlIFZlY3RvciBbMzg0IGRpbXNdfCBOb3JtYWxpemUKCiAgICBOb3JtYWxpemUgLS0+IFFkcmFudEluZGV4WyhRZHJhbnQgVmVjdG9yIERhdGFiYXNlKV0=)
+![Multi-Provider Embedding Router Pipeline](https://mermaid.ink/svg/Zmxvd2NoYXJ0IFRECiAgICBJbnB1dENodW5rW0NvZGUgQ2h1bmsgVGV4dF0gLS0+IEVtYlJvdXRlcltFbWJlZGRpbmdSb3V0ZXIgRW5naW5lXQogICAgCiAgICBzdWJncmFwaCBQcm92aWRlcnMgW0VtYmVkZGluZyBQcm92aWRlcnMgUHJpb3JpdHldCiAgICAgICAgRW1iUm91dGVyIC0tPiBMb2NhbE1vZGVsWzEuIExvY2FsIFNlbnRlbmNlLVRyYW5zZm9ybWVyczogYWxsLU1pbmlMTS1MNi12Ml0KICAgICAgICBFbWJSb3V0ZXIgLS0+IEdlbWluaUVtYlsyLiBHb29nbGUgR2VtaW5pOiB0ZXh0LWVtYmVkZGluZy0wMDRdCiAgICAgICAgRW1iUm91dGVyIC0tPiBPbGxhbWFFbWJbMy4gTG9jYWwgT2xsYW1hOiBub21pYy1lbWJlZC10ZXh0XQogICAgICAgIEVtYlJvdXRlciAtLT4gT3BlbkFJRW1iWzQuIE9wZW5BSTogdGV4dC1lbWJlZGRpbmctMy1zbWFsbF0KICAgIGVuZAoKICAgIExvY2FsTW9kZWwgLS0+fERlbnNlIDM4NGQgVmVjdG9yfCBOb3JtYWxpemVbTDIgTm9ybWFsaXphdGlvbl0KICAgIEdlbWluaUVtYiAtLT58RGVuc2UgMzg0ZCBWZWN0b3J8IE5vcm1hbGl6ZQogICAgT2xsYW1hRW1iIC0tPnxEZW5zZSAzODRkIFZlY3RvcnwgTm9ybWFsaXplCiAgICBPcGVuQUlFbWIgLS0+fERlbnNlIDM4NGQgVmVjdG9yfCBOb3JtYWxpemUKCiAgICBOb3JtYWxpemUgLS0+IFFkcmFudEluZGV4WyhRZHJhbnQgVmVjdG9yIERhdGFiYXNlKV0=)
 
 ```mermaid
 flowchart TD
@@ -28,10 +28,10 @@ flowchart TD
         EmbRouter --> OpenAIEmb[4. OpenAI: text-embedding-3-small]
     end
 
-    LocalModel -->|Dense Vector [384 dims]| Normalize[L2 Normalization]
-    GeminiEmb -->|Dense Vector [384 dims]| Normalize
-    OllamaEmb -->|Dense Vector [384 dims]| Normalize
-    OpenAIEmb -->|Dense Vector [384 dims]| Normalize
+    LocalModel -->|Dense 384d Vector| Normalize[L2 Normalization]
+    GeminiEmb -->|Dense 384d Vector| Normalize
+    OllamaEmb -->|Dense 384d Vector| Normalize
+    OpenAIEmb -->|Dense 384d Vector| Normalize
 
     Normalize --> QdrantIndex[(Qdrant Vector Database)]
 ```
