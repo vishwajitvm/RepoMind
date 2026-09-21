@@ -133,3 +133,37 @@ pytest backend/tests -v
   - [LLM Routing](docs/feature/llm-routing.md)
   - [RAG Chat](docs/feature/rag-chat.md)
   - [Repository Indexing](docs/feature/repository-indexing.md)
+
+---
+
+## 7. Community, Security & Policies
+
+RepoMind is built with an uncompromising commitment to security, code confidentiality, and open-source collaboration:
+
+- [**Contributing Guide**](CONTRIBUTING.md) — Workflow, code standards, Docker testing, and pull request procedures.
+- [**Code of Conduct**](CODE_OF_CONDUCT.md) — Contributor Covenant v2.1 pledge and community standards.
+- [**Security Policy**](SECURITY.md) — Vulnerability reporting, response SLAs, threat modeling, and secret handling.
+- [**Privacy Policy**](PRIVACY.md) — Data protection, zero source code telemetry, local air-gapped deployment guarantees, and retention rules.
+
+---
+
+## 8. License
+
+RepoMind is open-source software licensed under the [**Apache License, Version 2.0**](LICENSE).
+
+```text
+Copyright 2026 RepoMind Authors and Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+

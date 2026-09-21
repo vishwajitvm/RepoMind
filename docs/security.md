@@ -56,3 +56,12 @@ Only read-only MCP tools are enabled:
 - `search_code`: Search code symbols and snippets across the repository.
 - `get_file_contents`: Retrieve current, authoritative file content for line-grounded reasoning.
 - All write, commit, delete, or administrative tools are explicitly excluded.
+
+---
+
+## 4. Policy & Compliance Documents
+
+For operational vulnerability handling protocols and source code data confidentiality policies:
+- [**GitHub Security Policy**](../SECURITY.md) — Vulnerability reporting channels, response SLAs, threat modeling, and coordinated disclosure.
+- [**Privacy & Data Handling Policy**](../PRIVACY.md) — Local storage, vector isolation, LLM prompt egress restrictions, and zero model-training guarantees.
+
