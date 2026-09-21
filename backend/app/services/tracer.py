@@ -31,15 +31,13 @@ class ObservabilityTracer:
             os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
     def _init_tracenest(self):
-        self.tracenest_client = None
-        if settings.TRACENEST_API_KEY:
-            try:
-                import tracenest
-                # TraceNest best effort initialization
-                self.tracenest_client = tracenest
-                logger.info("TraceNest client initialized")
-            except Exception as e:
-                logger.warning(f"TraceNest initialization skipped: {e}")
+        self.tracenest_logger = None
+        try:
+            from tracenest.logger import logger as tl
+            self.tracenest_logger = tl
+            logger.info("TraceNest logger initialized")
+        except Exception as e:
+            logger.warning(f"TraceNest logger initialization skipped: {e}")
 
     def log_event(self, event_name: str, payload: Dict[str, Any]):
         """Safely record an event to TraceNest and structured logger."""
@@ -49,15 +47,17 @@ class ObservabilityTracer:
             if any(secret_term in k.lower() for secret_term in ("key", "token", "password", "secret", "auth")):
                 safe_payload[k] = "[REDACTED]"
             else:
-                safe_payload[k] = v
+                # Ensure types are string or json-safe
+                if isinstance(v, (str, int, float, bool, list, dict)) or v is None:
+                    safe_payload[k] = v
+                else:
+                    safe_payload[k] = str(v)
 
         logger.info(f"[TRACE] {event_name}: {safe_payload}")
 
-        if self.tracenest_client:
+        if self.tracenest_logger:
             try:
-                # Best-effort TraceNest track
-                if hasattr(self.tracenest_client, "track"):
-                    self.tracenest_client.track(event_name, safe_payload)
+                self.tracenest_logger.info(event_name, **safe_payload)
             except Exception as e:
                 logger.debug(f"TraceNest logging failed: {e}")
 

@@ -1,14 +1,52 @@
-# Feature: Embedding Router & Dense Vector Storage
+# Feature: Multi-Provider Embedding Router
 
-## Purpose
-Decouples vector embedding generation from individual providers and protects against network outages or rate limits with automatic failover.
+## 1. Overview (In Plain Language)
 
-## Providers & Priority
-1. **Google Gemini**: `text-embedding-004` (when `GEMINI_API_KEY` is configured).
-2. **Ollama**: `nomic-embed-text` or `all-minilm` (when `OLLAMA_BASE_URL` is active).
-3. **Local Deterministic Fallback**: Normalized 384-dimensional unit-norm projection, ensuring offline operation without paid keys or GPUs.
+An "embedding" is a mathematical summary of a piece of code. It converts words and symbols into a list of numbers (a vector) so that a computer can calculate how closely related two ideas are.
 
-## Qdrant Integration
-- Vectors are stored in collection `repomind_code_chunks` with Cosine distance.
-- Payloads carry `repository_id`, `path`, `symbol`, `start_line`, `end_line`, and `content`.
-- Search supports repository-level keyword payload filtering.
+For example, an embedding engine knows that `def authenticate_user():` is closely related to the question *"How do users log in?"*, even though the exact words are different.
+
+RepoMind includes an **EmbeddingRouter** that:
+- Automatically uses an ultra-fast, local model (`all-MiniLM-L6-v2`) that requires no external API keys.
+- Falls back to cloud providers like Google Gemini or OpenAI if configured.
+- Guarantees vectors are compatible with our Qdrant vector database.
+
+---
+
+## 2. Embedding Generation Flow Diagram
+
+![Multi-Provider Embedding Router Pipeline](https://mermaid.ink/svg/Zmxvd2NoYXJ0IFRECiAgICBJbnB1dENodW5rW0NvZGUgQ2h1bmsgVGV4dF0gLS0+IEVtYlJvdXRlcltFbWJlZGRpbmdSb3V0ZXIgRW5naW5lXQogICAgCiAgICBzdWJncmFwaCBQcm92aWRlcnMgW0VtYmVkZGluZyBQcm92aWRlcnMgUHJpb3JpdHldCiAgICAgICAgRW1iUm91dGVyIC0tPiBMb2NhbE1vZGVsWzEuIExvY2FsIFNlbnRlbmNlLVRyYW5zZm9ybWVyczogYWxsLU1pbmlMTS1MNi12Ml0KICAgICAgICBFbWJSb3V0ZXIgLS0+IEdlbWluaUVtYlsyLiBHb29nbGUgR2VtaW5pOiB0ZXh0LWVtYmVkZGluZy0wMDRdCiAgICAgICAgRW1iUm91dGVyIC0tPiBPbGxhbWFFbWJbMy4gTG9jYWwgT2xsYW1hOiBub21pYy1lbWJlZC10ZXh0XQogICAgICAgIEVtYlJvdXRlciAtLT4gT3BlbkFJRW1iWzQuIE9wZW5BSTogdGV4dC1lbWJlZGRpbmctMy1zbWFsbF0KICAgIGVuZAoKICAgIExvY2FsTW9kZWwgLS0+fERlbnNlIFZlY3RvciBbMzg0IGRpbXNdfCBOb3JtYWxpemVbTDIgTm9ybWFsaXphdGlvbl0KICAgIEdlbWluaUVtYiAtLT58RGVuc2UgVmVjdG9yIFszODQgZGltc118IE5vcm1hbGl6ZQogICAgT2xsYW1hRW1iIC0tPnxEZW5zZSBWZWN0b3IgWzM4NCBkaW1zXXwgTm9ybWFsaXplCiAgICBPcGVuQUlFbWIgLS0+fERlbnNlIFZlY3RvciBbMzg0IGRpbXNdfCBOb3JtYWxpemUKCiAgICBOb3JtYWxpemUgLS0+IFFkcmFudEluZGV4WyhRZHJhbnQgVmVjdG9yIERhdGFiYXNlKV0=)
+
+```mermaid
+flowchart TD
+    InputChunk[Code Chunk Text] --> EmbRouter[EmbeddingRouter Engine]
+    
+    subgraph Providers [Embedding Providers Priority]
+        EmbRouter --> LocalModel[1. Local Sentence-Transformers: all-MiniLM-L6-v2]
+        EmbRouter --> GeminiEmb[2. Google Gemini: text-embedding-004]
+        EmbRouter --> OllamaEmb[3. Local Ollama: nomic-embed-text]
+        EmbRouter --> OpenAIEmb[4. OpenAI: text-embedding-3-small]
+    end
+
+    LocalModel -->|Dense Vector [384 dims]| Normalize[L2 Normalization]
+    GeminiEmb -->|Dense Vector [384 dims]| Normalize
+    OllamaEmb -->|Dense Vector [384 dims]| Normalize
+    OpenAIEmb -->|Dense Vector [384 dims]| Normalize
+
+    Normalize --> QdrantIndex[(Qdrant Vector Database)]
+```
+
+---
+
+## 3. Technical Architecture
+
+### 3.1 Responsibilities
+- **Dimensional Uniformity**: Enforces a standard 384-dimensional vector format for seamless indexing in Qdrant collection `repomind_code_chunks`.
+- **Batch Processing**: Groups code chunks into batches of 32 to maximize throughput and minimize CPU/GPU overhead.
+- **Provider Resilience**: If a remote embedding provider times out or returns HTTP 429, the router automatically fails over to the local fallback without crashing the indexing worker.
+
+### 3.2 Supported Providers
+1. **Local (Default)**: Embedded fast transformer (`all-MiniLM-L6-v2`) running directly in the Python runtime.
+2. **Google Gemini**: `text-embedding-004` via Google Generative AI REST API.
+3. **Ollama**: `nomic-embed-text` served via Dockerized Ollama daemon.
+4. **OpenAI**: `text-embedding-3-small` via OpenAI API.

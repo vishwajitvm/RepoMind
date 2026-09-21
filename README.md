@@ -1,133 +1,135 @@
-# RepoMind — AI Codebase Intelligence POC
+# RepoMind — AI Codebase Intelligence Platform
 
-RepoMind is a small, professional, end-to-end AI-powered application that helps developers understand and interrogate GitHub repositories with precision. It combines AST-aware code chunking, vector retrieval in Qdrant, live repository inspection via the official GitHub MCP server, LangGraph orchestration, task-aware multi-provider LLM routing, and full execution telemetry.
-
----
-
-## Why RepoMind Exists
-
-Developers often struggle to navigate complex repositories, verify current architectural behaviors, and trace multi-provider AI tool calls. Generic RAG systems frequently fail because they slice code into arbitrary character windows without symbol context and cannot fall back when cloud model quotas are exhausted. RepoMind solves this by:
-- Preserving class, method, function, and interface boundaries.
-- Seamlessly falling back across cloud and local Ollama inference models.
-- Conditionally invoking official GitHub MCP tools when live repository updates are required.
-- Providing complete execution traces and exact line-numbered source references.
+RepoMind is a modern, production-style AI assistant engineered to help software teams inspect, navigate, and deeply understand complex GitHub repositories with speed and cryptographic precision.
 
 ---
 
-## Key Capabilities
+## 1. What is RepoMind? (In Plain Language)
 
-- **Code-Aware Parsing & Chunking**: Preserves structural boundaries (classes, functions, interfaces, types) rather than naive fixed-character splitting.
-- **Resumable Indexing**: Shallow clone ingestion with isolated error boundaries. One failing file does not corrupt the job.
-- **Qdrant Dense Vector Search**: High-performance semantic retrieval with repository-level filtering and line range tracking.
-- **Official GitHub MCP Integration**: Read-only `search_code` and `get_file_contents` tools directly inside Docker.
-- **Multi-Provider LLM Router**: Automatic failover (Gemini → Groq → NVIDIA → OpenRouter → Ollama) with bounded retries.
-- **Grounded Source Citations**: Distinguishes indexed source from live MCP source with file paths and line ranges.
-- **Observability & Trace Inspector**: Best-effort TraceNest and LangSmith tracing with in-UI execution timeline inspector.
-- **Storybook UI Library**: Interactive Storybook stories with controls for all reusable components.
+Think of RepoMind as a dedicated senior engineer who has read every single line of code in your GitHub repository and remembers how everything connects.
 
----
-
-## Technology Stack
-
-- **Frontend**: React 18, TypeScript (Strict), Vite, Tailwind CSS, TanStack Query, React Hook Form, Zod, Storybook.
-- **Backend**: Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic, PostgreSQL 16.
-- **AI & Vector DB**: LangGraph, Qdrant, EmbeddingRouter, LLMRouter, Ollama.
-- **Tools & Protocols**: Official GitHub MCP (`ghcr.io/github/github-mcp-server`), Redis 7.
-- **Observability**: TraceNest, LangSmith.
-- **Infrastructure**: Docker & Docker Compose.
+Normally, when you ask a generic AI about a codebase, it guesses, hallucinates functions that do not exist, or asks you to copy-paste thousands of lines of code. RepoMind is fundamentally different:
+- **It reads your code structurally**: Instead of cutting code in the middle of sentences or brackets, it understands classes, functions, and interfaces.
+- **It searches with semantic memory**: It stores mathematical fingerprints (embeddings) of code snippets inside a high-speed vector search engine (Qdrant).
+- **It talks directly to GitHub**: When you need to know about the latest commits or pull requests, it queries the official GitHub Model Context Protocol (MCP) server.
+- **It never stops working**: If cloud AI services like Gemini, OpenAI, or Groq run out of tokens or experience rate limits, RepoMind automatically switches to backup AI models—including a completely free, local AI running on your machine via Ollama.
+- **It provides exact proofs**: Every single answer includes the exact file names and line numbers so you can verify the truth immediately.
 
 ---
 
-## Architecture Diagram
+## 2. End-to-End System Architecture
+
+![RepoMind End-to-End System Architecture](https://mermaid.ink/svg/Zmxvd2NoYXJ0IFRECiAgICBVc2VyKFtEZXZlbG9wZXIgLyBBcmNoaXRlY3RdKSAtLT58MS4gTmF0dXJhbCBMYW5ndWFnZSBRdWVyeXwgVUlbUmVhY3QgMTggU2luZ2xlLVBhZ2UgQXBwIDozMDAwXQogICAgVUkgLS0+fDIuIFBPU1QgL2FwaS9jaGF0fCBBUElbRmFzdEFQSSBCYWNrZW5kIDo4MDAwXQogICAgCiAgICBzdWJncmFwaCBDb3JlIFtMYW5nR3JhcGggT3JjaGVzdHJhdG9yIEVuZ2luZV0KICAgICAgICBBUEkgLS0+IEdyYXBoW0xhbmdHcmFwaCBTdGF0ZUdyYXBoXQogICAgICAgIEdyYXBoIC0tPnwzLiBRdWVyeSBWZWN0b3IgRW1iZWRkaW5nc3wgUWRyYW50WyhRZHJhbnQgVmVjdG9yIERCIDo2MzMzKV0KICAgICAgICBHcmFwaCAtLT58NC4gSW5zcGVjdCBMaXZlIENvZGUgJiBDb21taXRzfCBHaXRIdWJNQ1BbT2ZmaWNpYWwgR2l0SHViIE1DUCBTZXJ2ZXJdCiAgICAgICAgR3JhcGggLS0+fDUuIE11bHRpLVByb3ZpZGVyIEZhbGxiYWNrfCBMTE1Sb3V0ZXJbTExNIFJvdXRlciBFbmdpbmVdCiAgICBlbmQKCiAgICBzdWJncmFwaCBQcm92aWRlcnMgWzEwLVRpZXIgRmFpbG92ZXIgQ2hhaW5dCiAgICAgICAgTExNUm91dGVyIC0tPiBHZW1pbmlbMS4gR29vZ2xlIEdlbWluaSBGbGFzaF0KICAgICAgICBMTE1Sb3V0ZXIgLS0+IEdyb3FbMi4gR3JvcSBMbGFtYS0zLjMgNzBCXQogICAgICAgIExMTVJvdXRlciAtLT4gTnZpZGlhWzMuIE5WSURJQSBOSU0gTGxhbWEtMy4zXQogICAgICAgIExMTVJvdXRlciAtLT4gT3BlblJvdXRlcls0LiBPcGVuUm91dGVyIEZyZWUgVGllcl0KICAgICAgICBMTE1Sb3V0ZXIgLS0+IE9sbGFtYVs1LiBPbGxhbWEgTG9jYWwgRGFlbW9uIDoxMTQzNF0KICAgICAgICBMTE1Sb3V0ZXIgLS0+IExvY2FsRW5naW5lWzYuIExvY2FsIEdyb3VuZGluZyBFbmdpbmVdCiAgICBlbmQKCiAgICBzdWJncmFwaCBPYnNlcnZhYmlsaXR5IFtUcmFjZSAmIFRlbGVtZXRyeV0KICAgICAgICBBUEkgLS0+IFRyYWNlTmVzdFtUcmFjZU5lc3QgVUkgOjgwMDAvdHJhY2VuZXN0XQogICAgICAgIEdyYXBoIC0tPiBMYW5nU21pdGhbTGFuZ1NtaXRoIFRyYWNpbmddCiAgICBlbmQKCiAgICBMTE1Sb3V0ZXIgLS0+fDYuIEdyb3VuZGVkIEFuc3dlcnwgR3JhcGgKICAgIEdyYXBoIC0tPnw3LiBWZXJpZmllZCBSZXNwb25zZSAmIEV4YWN0IExpbmUgQ2l0YXRpb25zfCBVSQ==)
 
 ```mermaid
 flowchart TD
-    User([Developer]) --> ReactUI[React + Tailwind UI]
-    ReactUI --> FastAPI[FastAPI REST API]
-    FastAPI --> LangGraph[LangGraph Orchestrator]
-    LangGraph --> Qdrant[(Qdrant Vector DB)]
-    LangGraph --> GitHubMCP[GitHub MCP Server]
-    LangGraph --> LLMRouter[LLM Router]
-    LLMRouter --> Providers[Gemini / Groq / NVIDIA / OpenRouter]
-    LLMRouter -.->|Local Fallback| Ollama[Ollama Local Daemon]
-    FastAPI --> Postgres[(PostgreSQL 16)]
-    FastAPI --> Redis[(Redis Queue)]
-    Redis --> Worker[Ingestion Worker]
-    Worker --> Qdrant
+    User([Developer / Architect]) -->|1. Natural Language Query| UI[React 18 Single-Page App :3000]
+    UI -->|2. POST /api/chat| API[FastAPI Backend :8000]
+    
+    subgraph Core [LangGraph Orchestrator Engine]
+        API --> Graph[LangGraph StateGraph]
+        Graph -->|3. Query Vector Embeddings| Qdrant[(Qdrant Vector DB :6333)]
+        Graph -->|4. Inspect Live Code & Commits| GitHubMCP[Official GitHub MCP Server]
+        Graph -->|5. Multi-Provider Fallback| LLMRouter[LLM Router Engine]
+    end
+
+    subgraph Providers [10-Tier Failover Chain]
+        LLMRouter --> Gemini[1. Google Gemini Flash]
+        LLMRouter --> Groq[2. Groq Llama-3.3 70B]
+        LLMRouter --> Nvidia[3. NVIDIA NIM Llama-3.3]
+        LLMRouter --> OpenRouter[4. OpenRouter Free Tier]
+        LLMRouter --> Ollama[5. Ollama Local Daemon :11434]
+        LLMRouter --> LocalEngine[6. Local Grounding Engine]
+    end
+
+    subgraph Observability [Trace & Telemetry]
+        API --> TraceNest[TraceNest UI :8000/tracenest]
+        Graph --> LangSmith[LangSmith Tracing]
+    end
+
+    LLMRouter -->|6. Grounded Answer| Graph
+    Graph -->|7. Verified Response & Exact Line Citations| UI
 ```
 
 ---
 
-## How to Run with Docker
+## 3. Technical Core Principles
 
-RepoMind is built with a **Docker-First** standard. Everything required runs inside Docker containers:
+RepoMind follows a **modular monolith** design pattern adhering strictly to engineering standards:
+- **Zero Hallucinated Integrations**: Real external APIs, verified official package dependencies, and strict type checking.
+- **Code-Aware Chunking**: AST-guided symbol extraction preserving module, class, function, and interface bounds with file path and line span tracking.
+- **Resumable Indexing**: Background workers powered by Redis 7 and asynchronous Python tasks with individual file error boundaries.
+- **10-Tier LLM Resilience**: Automatic failover across Gemini, Groq, NVIDIA NIM, OpenRouter, Mistral, DeepSeek, Moonshot/Kimi, OpenAI, and local Ollama.
+- **TraceNest Telemetry**: Real-time request and AI execution telemetry served via an embedded dashboard at `http://localhost:8000/tracenest`.
+- **Storybook Component Workbench**: Containerized Storybook 8 suite at `http://localhost:6006` showcasing 14 core UI components and 56 interactive states.
 
+---
+
+## 4. Docker-First Quickstart
+
+Everything required by RepoMind runs inside Docker containers. Only **Docker** and **Docker Compose** are required on the host system.
+
+### 4.1 Initialize Configuration
 ```bash
-# 1. Clone repository
+# Clone the repository
 git clone https://github.com/your-org/repomind.git
 cd repomind
 
-# 2. Configure environments
+# Initialize independent frontend and backend environment files
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
+```
 
-# 3. Start all services (including Storybook)
+### 4.2 Start the Multi-Service Stack
+```bash
 docker compose up -d --build
 ```
 
-Once started:
-- **Web Application**: [http://localhost:3000](http://localhost:3000)
-- **Storybook UI**: [http://localhost:6006](http://localhost:6006)
-- **API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Qdrant Dashboard**: [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
-- **Ollama**: [http://localhost:11434](http://localhost:11434)
+### 4.3 Service Ports & Addresses
+| Service | Local Address | Description |
+| :--- | :--- | :--- |
+| **Web Frontend** | [http://localhost:3000](http://localhost:3000) | React 18 Single-Page Application |
+| **Storybook UI** | [http://localhost:6006](http://localhost:6006) | Component Design System & Stories |
+| **Backend API** | [http://localhost:8000/docs](http://localhost:8000/docs) | FastAPI OpenAPI Documentation |
+| **TraceNest Dashboard** | [http://localhost:8000/tracenest](http://localhost:8000/tracenest) | Observability & Telemetry UI |
+| **Qdrant Vector DB** | [http://localhost:6333/dashboard](http://localhost:6333/dashboard) | Semantic Vector Search UI |
+| **Ollama Local LLM** | [http://localhost:11434](http://localhost:11434) | Local Offline LLM Daemon |
 
 ---
 
-## Environment Configuration
+## 5. Automated Verification & Testing
 
-See `.env.example` for the complete list of variables. Minimum recommended configuration:
+Verify the end-to-end integrity of all 9 running containers, vector retrieval, and telemetry:
 
-```env
-POSTGRES_PASSWORD=postgres
-QDRANT_HOST=qdrant
-OLLAMA_BASE_URL=http://ollama:11434
-# Optional API Keys (System falls back automatically if omitted):
-GEMINI_API_KEY=
-GROQ_API_KEY=
-GITHUB_PERSONAL_ACCESS_TOKEN=
+```bash
+# Run comprehensive live Docker integration pipeline
+python backend/tests/test_live_docker.py
+
+# Run backend unit test suite
+pytest backend/tests -v
 ```
 
 ---
 
-## Basic Usage
+## 6. Complete Documentation Index
 
-1. **Select or Add Repository**: Enter a GitHub repository URL (e.g. `https://github.com/tiangolo/fastapi`) in the UI.
-2. **Trigger Indexing**: Click **"Re-Index Codebase"**. The background worker clones the branch, chunks source code, generates embeddings, and indexes vectors into Qdrant.
-3. **Ask Questions**: Ask questions like:
-   - *"What is the main architecture of this repository?"*
-   - *"Where is authentication handled and what methods exist?"*
-4. **Inspect Sources & Traces**: Click on cited sources to see exact line ranges, and open **"Inspect Trace"** to view real latency, model provider, and execution steps.
-
----
-
-## Documentation Links
-
-- [Architecture Specification](docs/architecture.md)
-- [Local Development & Testing](docs/development.md)
-- [Configuration Reference](docs/configuration.md)
-- [Feature: Repository Indexing](docs/feature/repository-indexing.md)
-- [Feature: Code-Aware Chunking](docs/feature/code-chunking.md)
-- [Feature: Embedding Router](docs/feature/embeddings.md)
-- [Feature: LLM Routing & Fallback](docs/feature/llm-routing.md)
-- [Feature: Official GitHub MCP Integration](docs/feature/github-mcp.md)
-- [Feature: LangGraph Codebase Orchestration](docs/feature/rag-chat.md)
-- [Feature: Execution Trace Inspector](docs/feature/execution-trace.md)
-
----
-
-## Limitations
-
-- **Read-Only GitHub MCP**: This POC restricts GitHub MCP operations to read-only tools (`search_code`, `get_file_contents`) to prevent unintended remote modifications.
-- **Repository Size Guard**: Files larger than 1 MB are automatically skipped during indexing to prevent memory exhaustion.
-- **Local Fallback Mode**: When cloud API keys and Ollama are both offline, the local deterministic grounding adapter provides context extraction without generative conversational prose.
+- [**System Architecture**](docs/architecture.md) — Architectural overview, layer responsibilities, and data flows.
+- [**Configuration Guide**](docs/configuration.md) — Independent environment variables and secret hygiene.
+- [**Development Workflow**](docs/development.md) — Local development, hot reloading, and toolchains.
+- [**REST API Reference**](docs/api.md) — Complete endpoint schemas, parameters, and curl examples.
+- [**Deployment Guide**](docs/deployment.md) — Single-node Docker and distributed cloud hosting.
+- [**Testing & Quality**](docs/testing.md) — Pytest, Storybook tests, TypeScript strict checks, and CI.
+- [**Troubleshooting Guide**](docs/troubleshooting.md) — Solutions for common issues and diagnostics.
+- [**Security Architecture**](docs/security.md) — Credential protection, secret scrubbing, and safe indexing.
+- [**Observability Guide**](docs/observability.md) — TraceNest dashboard, LangSmith tracing, and telemetry.
+- [**Frontend Architecture**](docs/frontend.md) — React 18, TanStack Query, Tailwind CSS, and Zod forms.
+- [**Storybook Catalog**](docs/storybook.md) — UI component library, controls, and states.
+- [**Data Model & Storage**](docs/data-model.md) — PostgreSQL relational schema and Qdrant vector payloads.
+- [**Feature Deep Dives**](docs/feature/):
+  - [Code Chunking](docs/feature/code-chunking.md)
+  - [Embeddings](docs/feature/embeddings.md)
+  - [Execution Tracing](docs/feature/execution-trace.md)
+  - [GitHub MCP](docs/feature/github-mcp.md)
+  - [LLM Routing](docs/feature/llm-routing.md)
+  - [RAG Chat](docs/feature/rag-chat.md)
+  - [Repository Indexing](docs/feature/repository-indexing.md)

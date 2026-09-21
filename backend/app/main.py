@@ -52,8 +52,41 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# TraceNest request telemetry middleware
+try:
+    from tracenest.fastapi.middleware import TraceNestMiddleware
+    app.add_middleware(TraceNestMiddleware)
+except Exception as e:
+    logger.warning(f"Could not load TraceNestMiddleware: {e}")
+
 # Include API endpoints
 app.include_router(api_router, prefix="/api")
+
+# TraceNest Observability UI
+try:
+    from tracenest.ui.router import router as tracenest_ui_router, tracenest_app_js, tracenest_styles_css
+    from fastapi.responses import RedirectResponse
+
+    app.include_router(tracenest_ui_router)
+
+    @app.get("/tracenest", include_in_schema=False)
+    async def tracenest_slash_redirect():
+        """Redirect /tracenest to /tracenest/ to ensure relative assets load properly."""
+        return RedirectResponse(url="/tracenest/", status_code=307)
+
+    @app.get("/styles.css", include_in_schema=False)
+    def root_styles_css_fallback():
+        """Fallback for relative styles.css request."""
+        return tracenest_styles_css()
+
+    @app.get("/app.js", include_in_schema=False)
+    def root_app_js_fallback():
+        """Fallback for relative app.js request."""
+        return tracenest_app_js()
+
+    logger.info("TraceNest UI successfully mounted at /tracenest/")
+except Exception as e:
+    logger.warning(f"Could not mount TraceNest UI router: {e}")
 
 
 @app.get("/health")
