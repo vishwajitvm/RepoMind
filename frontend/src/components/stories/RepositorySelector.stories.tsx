@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { RepositorySelector } from "../ai/RepositorySelector";
+import type { Repository } from "../../types";
 
 const meta: Meta<typeof RepositorySelector> = {
   title: "AI/RepositorySelector",
@@ -15,7 +16,7 @@ const meta: Meta<typeof RepositorySelector> = {
 export default meta;
 type Story = StoryObj<typeof RepositorySelector>;
 
-const sampleRepos = [
+const sampleRepos: Repository[] = [
   {
     id: "repo-1",
     name: "octocat/Hello-World",
